@@ -33,6 +33,63 @@ void softmax_regression_epoch_cpp(const float *X, const unsigned char *y,
      */
 
     /// BEGIN YOUR CODE
+    // 临时变量
+    std::vector<float> logits(batch * k);   // 用于存储每个 batch 的 logits
+    std::vector<float> softmax_probs(batch * k);  // 存储 softmax 概率
+    std::vector<float> gradient(n * k, 0);  // 梯度初始化为0
+
+    for (size_t i = 0; i < m; i += batch) {
+        size_t current_batch_size = std::min(batch, m - i);
+
+        // Step 1: 计算 logits, X[i:i+batch] @ theta
+        for (size_t b = 0; b < current_batch_size; ++b) {
+            for (size_t j = 0; j < k; ++j) {
+                logits[b * k + j] = 0;
+                for (size_t l = 0; l < n; ++l) {
+                    logits[b * k + j] += X[(i + b) * n + l] * theta[l * k + j];
+                }
+            }
+        }
+
+        // Step 2: 计算 softmax 概率（先减去每行的最大值）
+        for (size_t b = 0; b < current_batch_size; ++b) {
+            float max_logit = *std::max_element(&logits[b * k], &logits[b * k + k]);
+
+            // 计算 exp(logits - max_logit) 以数值稳定
+            float sum_exp = 0;
+            for (size_t j = 0; j < k; ++j) {
+                softmax_probs[b * k + j] = std::exp(logits[b * k + j] - max_logit);
+                sum_exp += softmax_probs[b * k + j];
+            }
+
+            // 归一化 softmax 概率
+            for (size_t j = 0; j < k; ++j) {
+                softmax_probs[b * k + j] /= sum_exp;
+            }
+        }
+
+        // Step 3: 计算梯度
+        std::fill(gradient.begin(), gradient.end(), 0);  // 初始化梯度
+        for (size_t b = 0; b < current_batch_size; ++b) {
+            for (size_t j = 0; j < k; ++j) {
+                // 计算 (softmax_probs - I_y)
+                float indicator = (y[i + b] == j) ? 1.0f : 0.0f;
+                float diff = softmax_probs[b * k + j] - indicator;
+
+                // 累积梯度: X_batch.T @ (softmax_probs - I_y)
+                for (size_t l = 0; l < n; ++l) {
+                    gradient[l * k + j] += X[(i + b) * n + l] * diff;
+                }
+            }
+        }
+
+        // Step 4: 用 SGD 更新 theta
+        for (size_t l = 0; l < n; ++l) {
+            for (size_t j = 0; j < k; ++j) {
+                theta[l * k + j] -= lr * gradient[l * k + j] / current_batch_size;
+            }
+        }
+    }
 
     /// END YOUR CODE
 }
