@@ -33,7 +33,22 @@ def parse_mnist(image_filesname, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+     # 打开图像文件
+    with gzip.open(image_filesname, 'rb') as img_file:
+        # 读取文件头信息
+        magic_number, num_images, rows, cols = np.frombuffer(img_file.read(16), dtype=np.uint32).byteswap()
+        # 读取图像数据
+        image_data = np.frombuffer(img_file.read(), dtype=np.uint8)
+        # 将图像数据调整为 (num_images, rows * cols) 的形状并归一化
+        X = image_data.reshape(num_images, rows * cols).astype(np.float32) / 255.0
+    
+    # 打开标签文件
+    with gzip.open(label_filename, 'rb') as lbl_file:
+        # 读取文件头信息
+        magic_number, num_labels = np.frombuffer(lbl_file.read(8), dtype=np.uint32).byteswap()
+        # 读取标签数据
+        y = np.frombuffer(lbl_file.read(), dtype=np.uint8)
+    return X, y
     ### END YOUR SOLUTION
 
 
@@ -54,7 +69,12 @@ def softmax_loss(Z, y_one_hot):
         Average softmax loss over the sample. (ndl.Tensor[np.float32])
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    # Step 1: Compute the log-sum-exp for numerical stability
+    exp_sum_z = ndl.summation(ndl.exp(Z), axes=(-1,))
+    b = Z.shape[0]
+    z_y = ndl.summation(ndl.multiply(Z, y_one_hot), axes=(-1,))
+    loss = ndl.summation(ndl.log(exp_sum_z) - z_y) / b
+    return loss
     ### END YOUR SOLUTION
 
 
@@ -83,7 +103,24 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
     """
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    num_examples, input_dim = X.shape
+    _, num_classes = W2.shape
+    for i in range(0, num_examples, batch):
+        X_batch = X[i:i + batch]
+        y_batch = y[i:i + batch]
+        x = ndl.Tensor(X_batch)
+
+        y_one_hot = np.zeros((y_batch.size, num_classes))
+        y_one_hot[np.arange(y_batch.size), y_batch] = 1
+        y_tensor = ndl.Tensor(y_one_hot)
+
+        Z = ndl.matmul(ndl.relu(ndl.matmul(x, W1)), W2)
+        loss = softmax_loss(Z, y_tensor)
+        loss.backward()
+        
+        W1 = ndl.Tensor(W1.numpy() - lr * W1.grad.numpy())
+        W2 = ndl.Tensor(W2.numpy() - lr * W2.grad.numpy())
+    return W1, W2
     ### END YOUR SOLUTION
 
 

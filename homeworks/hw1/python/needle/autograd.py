@@ -1,7 +1,7 @@
 """Core data structures."""
 import needle
 from .backend_numpy import Device, cpu, all_devices
-from typing import List, Optional, NamedTuple, Tuple, Union
+from typing import List, Optional, NamedTuple, Tuple, Union, Dict
 from collections import namedtuple
 import numpy
 
@@ -362,25 +362,31 @@ class Tensor(Value):
     __rmul__ = __mul__
 
 
-
-
 def compute_gradient_of_variables(output_tensor, out_grad):
     """Take gradient of output node with respect to each node in node_list.
 
     Store the computed result in the grad field of each Variable.
     """
-    # a map from node to a list of gradient contributions from each output node
-    node_to_output_grads_list: Dict[Tensor, List[Tensor]] = {}
-    # Special note on initializing gradient of
-    # We are really taking a derivative of the scalar reduce_sum(output_node)
-    # instead of the vector output_node. But this is the common case for loss function.
-    node_to_output_grads_list[output_tensor] = [out_grad]
-
-    # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
+    # Step 1: Dictionary that records a list of partial adjoints of each node
+    node_to_grad = {output_tensor: [out_grad]}
+    
+    # Step 2: Traverse nodes in reverse topological order (i.e., from output to input)
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
 
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    for node in reverse_topo_order:
+        # Step 3: Sum up partial adjoints        
+        v_i = sum_node_list(node_to_grad[node])
+        # Step 4: Store the computed gradient in the node's grad field
+        node.grad = v_i
+        if node.is_leaf():
+            continue
+        gradient = node.op.gradient_as_tuple(v_i, node)
+        # Step 5: Propagate gradients to input nodes
+        for i, node1 in enumerate(node.inputs):
+            if not node_to_grad.get(node1):
+              node_to_grad[node1] = []   
+            node_to_grad[node1].append(gradient[i])
+
     ### END YOUR SOLUTION
 
 
@@ -393,14 +399,36 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    visited = set()  # 用于记录已访问过的节点
+    topo_order = []  # 存储拓扑排序的结果
+    
+    # 遍历节点列表，执行 DFS
+    for node in node_list:
+        if node not in visited:
+            topo_sort_dfs(node, visited, topo_order)
+    
+    # 返回拓扑排序的结果，由于我们在 DFS 中是后序添加节点的，因此需要反转
+    return topo_order
     ### END YOUR SOLUTION
 
 
 def topo_sort_dfs(node, visited, topo_order):
     """Post-order DFS"""
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    # 如果当前节点已经访问过，直接返回
+    if node in visited:
+        return
+
+    visited.add(node)  # 标记当前节点为已访问
+    
+    # 遍历所有前驱节点（即指向当前节点的节点），递归执行DFS
+    for predecessor in node.inputs:
+        # print(f'当前节点：node.shape: {node.shape}, node.op: {node.op}, 当前节点的前置们: node.shape: {predecessor.shape}, node.op: {predecessor.op}')
+        if predecessor not in visited:
+            topo_sort_dfs(predecessor, visited, topo_order)
+    
+    # 在所有前驱节点都被访问后，将当前节点加入到拓扑排序的结果中
+    topo_order.append(node)
     ### END YOUR SOLUTION
 
 
