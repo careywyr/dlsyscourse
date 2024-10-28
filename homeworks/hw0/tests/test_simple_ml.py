@@ -37,15 +37,6 @@ def test_parse_mnist():
     np.testing.assert_equal(y[:10], [5, 0, 4, 1, 9, 2, 1, 3, 1, 4])
 
 
-def submit_parse_mnist():
-    X,y = parse_mnist("data/t10k-images-idx3-ubyte.gz",
-                      "data/t10k-labels-idx1-ubyte.gz")
-    mugrade.submit(X.dtype)
-    mugrade.submit(y.dtype)
-    mugrade.submit(X.shape)
-    mugrade.submit(y.shape)
-    mugrade.submit(np.linalg.norm(X[:10]))
-    mugrade.submit(y[:10])
 
 
 ##############################################################################
@@ -92,19 +83,6 @@ def test_softmax_regression_epoch():
     np.testing.assert_allclose(np.linalg.norm(theta), 1.0947356,
                                rtol=1e-5, atol=1e-5)
 
-
-def submit_softmax_regression_epoch():
-    X,y = parse_mnist("data/t10k-images-idx3-ubyte.gz",
-                      "data/t10k-labels-idx1-ubyte.gz")
-
-    theta = np.zeros((X.shape[1], y.max()+1), dtype=np.float32)
-    softmax_regression_epoch(X[:100], y[:100], theta, lr=0.2, batch=100)
-    mugrade.submit(np.linalg.norm(theta))
-
-    theta = np.zeros((X.shape[1], y.max()+1), dtype=np.float32)
-    softmax_regression_epoch(X, y, theta, lr=0.1, batch=200)
-    # mugrade.submit(np.linalg.norm(theta))
-    # mugrade.submit(loss_err(X@theta, y))
 
 ##############################################################################
 ### TESTS/SUBMISSION CODE FOR nn_epoch()
