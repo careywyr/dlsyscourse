@@ -21,7 +21,6 @@ class EWiseAdd(TensorOp):
 
     def gradient(self, out_grad: Tensor, node: Tensor):
         lhs, rhs = node.inputs
-        print(f'EWiseAdd.gradient, lhs.shape:{lhs.shape}, rhs.shape={rhs.shape}, grad.shape={out_grad.shape}')
         return out_grad, out_grad
 
 
@@ -50,7 +49,6 @@ class EWiseMul(TensorOp):
 
     def gradient(self, out_grad: Tensor, node: Tensor):
         lhs, rhs = node.inputs
-        print(f'EWiseMul.gradient, lhs.shape:{lhs.shape}, rhs.shape={rhs.shape}, grad.shape={out_grad.shape}')
         return out_grad * rhs, out_grad * lhs
 
 
@@ -314,7 +312,6 @@ class MatMul(TensorOp):
             axes_to_sum = tuple(range(len(lhs.shape) - len(rhs.shape)))
             grad_rhs = summation(grad_rhs, axes=axes_to_sum)
 
-        print(f'MatMul.gradient result, grad_lhs.shape:{grad_lhs.shape}, grad_rhs.shape={grad_rhs.shape}')
         return grad_lhs, grad_rhs
         ### END YOUR SOLUTION
 

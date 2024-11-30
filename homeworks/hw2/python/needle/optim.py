@@ -25,7 +25,26 @@ class SGD(Optimizer):
 
     def step(self):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        for i, param in enumerate(self.params):
+            if param.grad is None:
+                continue
+            
+            # 获取参数和梯度的 numpy 数组
+            param_np = param.detach().numpy()
+            grad_np = param.grad.detach().numpy()
+            
+            # 计算带权重衰减的梯度
+            grad_np = grad_np + self.weight_decay * param_np
+            
+            # 初始化动量
+            if i not in self.u:
+                self.u[i] = np.zeros_like(grad_np)
+            
+            # 更新动量：u = momentum * u + grad
+            self.u[i] = self.momentum * self.u[i] + grad_np
+            
+            # 更新参数：theta = theta - lr * u
+            param.data = ndl.Tensor(param_np - self.lr * self.u[i], dtype=param.dtype)
         ### END YOUR SOLUTION
 
     def clip_grad_norm(self, max_norm=0.25):
